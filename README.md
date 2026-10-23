@@ -8,7 +8,7 @@ Projeto desenvolvido para o **Software Engineering Challenge 2026 — Univille**
 
 | | |
 |---|---|
-| **Nome da equipe** | _[Eventoville]_ |
+| **Nome da equipe** | _[ Eventoville ]_ |
 | **Integrantes** | Henry Hamon · _[com IA]_ |
 
 ## Funcionalidades
@@ -139,7 +139,6 @@ docs/mocks-html/       # mock visual de referência
 - **Qwen Design** (online): criação do layout e do mock visual de referência (`docs/mocks-html/mock.html`).
 - **OpenCode** com o modelo **BigPickle**: assistente de código no desenvolvimento, com os comandos do Spec Kit em `.opencode/`.
 - **GitHub Spec Kit**: desenvolvimento orientado a especificação (SDD), com o fluxo constituição → especificação → plano → tarefas registrado em `specs/` e `.specify/`.
-- **Claude Code** (Anthropic): especificação da demo com Spec Kit, implementação, revisão de código e testes, sempre sob supervisão da equipe.
 
 Nenhuma plataforma de geração integral de aplicações (como Lovable ou Bolt) foi usada.
 
