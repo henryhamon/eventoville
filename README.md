@@ -11,6 +11,8 @@ Projeto desenvolvido para o **Software Engineering Challenge 2026 — Univille**
 | **Nome da equipe** | _[ Eventoville ]_ |
 | **Integrantes** | Henry Hamon · _[com IA]_ |
 
+![preview](assets/preview.png)
+
 ## Funcionalidades
 
 | Perfil | O que pode fazer |
