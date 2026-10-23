@@ -57,6 +57,8 @@ Mesmo padrão para `users`, `courses`, `themes`, `locations` e `resources`:
 
 | Método | Rota | Query | Resposta |
 |---|---|---|---|
-| GET | `/api/admin/reports` | `start_date, end_date, course_id, theme_id` (todos opcionais) | `[{ title, event_date, start_time, end_time, theme_name, course_name, cost_center, location_name, requester_name, status }]` ordenado por data e hora |
-| GET | `/api/admin/reports.csv` | mesmos filtros | `text/csv; charset=utf-8`, BOM, `;`, `attachment; filename="relatorio-eventos.csv"` |
+| GET | `/api/admin/reports/events` | `start_date, end_date, course_id, theme_id` (todos opcionais) | `[{ title, event_date, start_time, end_time, theme_name, course_name, cost_center, location_name, requester_name, status }]` ordenado por data e hora |
+| GET | `/api/admin/reports/events.csv` | mesmos filtros | `text/csv; charset=utf-8`, BOM, `;`, `attachment; filename="relatorio-eventos.csv"` |
 | GET | `/api/admin/outbox` | — | últimos 20 e-mails |
+
+> As rotas de relatório ficam em `/api/admin/reports/events[.csv]`, e não em `/api/admin/reports`, porque `/api/admin/:entidade` já captura qualquer segmento único. Pela mesma razão, a futura `GET /api/admin/outbox` (T038) precisa ser registrada **antes** das rotas genéricas de CRUD.

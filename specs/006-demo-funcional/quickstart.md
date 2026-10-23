@@ -29,7 +29,7 @@ Credenciais fictícias:
 ## Validação técnica
 
 ```bash
-bash scripts/smoke.sh   # login, RBAC, bypass de status, conflito, adjacência, reject, CSV
+bash scripts/smoke.sh   # 60 checagens em banco temporário; não altera database.sqlite
 ```
 
 Checagens manuais:

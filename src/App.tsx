@@ -6,6 +6,8 @@ import Shell from './components/Shell';
 import MyRequests from './components/MyRequests';
 import EventForm from './components/EventForm';
 import AdminQueue from './components/AdminQueue';
+import AdminCatalog from './components/AdminCatalog';
+import Reports from './components/Reports';
 
 const readRoute = () => location.hash.replace(/^#/, '') || '/';
 
@@ -52,6 +54,8 @@ function App() {
             <Switch fallback={<MyRequests />}>
               <Match when={route() === '/nova'}><EventForm /></Match>
               <Match when={editId()}>{(id) => <EventForm id={Number(id())} />}</Match>
+              <Match when={route() === '/admin/cadastros' && currentUser()?.role === 'ADMIN'}><AdminCatalog /></Match>
+              <Match when={route() === '/admin/relatorios' && currentUser()?.role === 'ADMIN'}><Reports /></Match>
               <Match when={route().startsWith('/admin') && currentUser()?.role === 'ADMIN'}><AdminQueue route={route()} /></Match>
             </Switch>
           </Shell>

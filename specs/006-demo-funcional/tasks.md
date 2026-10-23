@@ -96,15 +96,15 @@ Cada marco deixa a demo apresentável. Se o tempo acabar, congele no último mar
 
 ## Phase 7: US5 — Cadastros (P2) M4
 
-- [ ] T033 [US5] Em `server.ts`, CRUD genérico `/api/admin/{users,courses,themes,locations,resources}` conforme o contrato (hash de senha, e-mail duplicado → 409, remoção referenciada → 409, `resource_ids` em locations, sem `password_hash` nas respostas)
-- [ ] T034 [US5] Criar `src/components/AdminCatalog.tsx`: abas por entidade, tabela e formulário inline de criar/editar, confirmação ao remover; aba Locais com checkboxes de recursos; aba Usuários com seletor de perfil e campo de senha
+- [x] T033 [US5] Em `server.ts`, CRUD genérico `/api/admin/{users,courses,themes,locations,resources}` conforme o contrato (hash de senha, e-mail duplicado → 409, remoção referenciada → 409, `resource_ids` em locations, sem `password_hash` nas respostas)
+- [x] T034 [US5] Criar `src/components/AdminCatalog.tsx`: abas por entidade, tabela e formulário inline de criar/editar, confirmação ao remover; aba Locais com checkboxes de recursos; aba Usuários com seletor de perfil e campo de senha
 
 ---
 
 ## Phase 8: US6 — Relatórios e CSV (P2) M4
 
-- [ ] T035 [US6] Em `server.ts`, função `queryReport(filters)` mais `GET /api/admin/reports` e `GET /api/admin/reports.csv` (BOM, `;`, aspas escapadas, cabeçalho em PT-BR igual às colunas da tabela)
-- [ ] T036 [US6] Criar `src/components/Reports.tsx`: filtros Data Inicial, Data Final, Curso e Tema; botão "Filtrar"; tabela com as 10 colunas; contador de registros; "Exportar CSV" via `window.location` para `/api/admin/reports.csv?<mesmos filtros>`
+- [x] T035 [US6] Em `server.ts`, função `queryReport(filters)` mais `GET /api/admin/reports/events` e `GET /api/admin/reports/events.csv` (BOM, `;`, aspas escapadas, cabeçalho em PT-BR igual às colunas da tabela)
+- [x] T036 [US6] Criar `src/components/Reports.tsx`: filtros Data Inicial, Data Final, Curso e Tema; botão "Filtrar"; tabela com as 10 colunas; contador de registros; "Exportar CSV" via `window.location` para `/api/admin/reports/events.csv?<filtros aplicados>`
 
 ---
 
@@ -118,7 +118,7 @@ Cada marco deixa a demo apresentável. Se o tempo acabar, congele no último mar
 
 ## Phase 10: Polish
 
-- [ ] T040 [P] Criar `scripts/smoke.sh` cobrindo SC-003, SC-004 e SC-005 (login, 403 no admin, bypass de status, conflito, adjacência, reject sem motivo, linhas do CSV) — *parcial: 29 checagens de auth, RBAC, estados, conflito e auditoria já existem; falta o CSV*
+- [x] T040 [P] Criar `scripts/smoke.sh` cobrindo SC-003, SC-004 e SC-005 (login, 403 no admin, bypass de status, conflito, adjacência, reject sem motivo, linhas do CSV) — *60 checagens; sobe um servidor próprio em banco temporário (porta 3999), sem tocar no `database.sqlite`*
 - [ ] T041 [P] Escrever `README.md`: equipe e integrantes (preencher), resumo, stack, instalação, `db:reset`, credenciais fictícias, estrutura, componentes reutilizados (Tailwind CDN, DM Sans, mock HTML) e ferramentas de IA usadas
 - [ ] T042 [P] Adicionar `@types/cookie-parser` e declarações para `node:sqlite` para zerar os erros do `tsc --noEmit`
 - [ ] T043 Testar `npm run build && npm start` (o servidor serve `dist/` na porta 3000) como plano B à banca

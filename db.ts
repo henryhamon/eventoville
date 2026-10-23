@@ -5,7 +5,8 @@ import { dirname, join } from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const dbPath = join(__dirname, 'database.sqlite');
+// DB_PATH lets tests run against a throwaway copy instead of the demo database
+const dbPath = process.env.DB_PATH || join(__dirname, 'database.sqlite');
 
 const db = new DatabaseSync(dbPath);
 
