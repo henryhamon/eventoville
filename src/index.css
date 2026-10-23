@@ -8,3 +8,11 @@ body { font-family: 'DM Sans', sans-serif; background: #EFEFEF; }
 .event-block:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(14,102,65,0.12); }
 @keyframes fadeUp { from { opacity:0; transform: translateY(10px);} to {opacity:1; transform: translateY(0);} }
 .fade-up { animation: fadeUp .4s ease forwards; }
+.sidebar-link { transition: all .15s ease; }
+.sidebar-link:hover, .sidebar-link.active { background: rgba(255,255,255,0.08); }
+.sidebar-link.active { background: #328347; }
+.modal-overlay { background: rgba(18, 25, 21, 0.5); backdrop-filter: blur(4px); }
+.field { width: 100%; padding: .6rem .9rem; border-radius: .75rem; border: 1px solid #E5E7EB; outline: none; background: #fff; font-size: .875rem; }
+.field:focus { border-color: #328347; }
+.field:disabled { background: #F7F7F7; color: #6B7280; }
+.field.invalid { border-color: #DC2626; background: #FEF2F2; }

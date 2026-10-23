@@ -1,4 +1,6 @@
 import { createSignal, onMount, For } from 'solid-js';
+import Header from './Header';
+import { currentUser, homeFor } from '../api';
 
 interface Event {
   id: number;
@@ -55,20 +57,11 @@ function PublicPortal() {
     <div class="view active pt-8 pb-16" style={{ "background": "#EFEFEF", "min-height": "100vh" }}>
       <div class="max-w-[1400px] mx-auto px-6 mb-6">
         <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-forest flex items-center justify-center" style={{ "background": "#0E6641" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/>
-              </svg>
-            </div>
-            <div>
-              <div class="text-lg font-semibold">evently</div>
-              <div class="text-xs text-sage" style={{ "color": "#50916B" }}>Descubra experiências</div>
-            </div>
-          </div>
+          <Header />
           <div class="flex items-center gap-2">
-            <button class="px-4 py-2 rounded-full text-sm font-medium text-forest hover:bg-mint transition" style={{ "color": "#0E6641" }}>Entrar</button>
-            <button class="px-4 py-2 rounded-full text-sm font-medium bg-forest text-white hover:bg-ink transition" style={{ "background": "#0E6641" }}>Criar Conta</button>
+            <a href={currentUser() ? `#${homeFor(currentUser()!)}` : '#/login'} class="px-4 py-2 rounded-full text-sm font-medium bg-forest text-white hover:bg-ink transition">
+              {currentUser() ? 'Meu painel' : 'Entrar'}
+            </a>
           </div>
         </div>
 

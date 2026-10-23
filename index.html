@@ -3,11 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Evently - Univille</title>
+    <title>Sistema de Gestão de Eventos Institucionais - Univille</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"DM Sans"', 'sans-serif'] },
+            colors: {
+              bg: '#EFEFEF',
+              ink: '#121915',
+              forest: '#0E6641',
+              brand: '#328347',
+              sage: '#50916B',
+              mint: '#E8F5EE',
+              cream: '#FFF8E7',
+              sky: '#E6F0FB',
+              rose: '#FBE9EC'
+            },
+            boxShadow: {
+              soft: '0 2px 16px rgba(14, 102, 65, 0.06)',
+              card: '0 1px 2px rgba(0,0,0,0.03), 0 8px 24px rgba(14, 102, 65, 0.06)'
+            }
+          }
+        }
+      };
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/dm-sans@5.0.0/index.min.css">
   </head>
-  <body>
+  <body class="bg-bg text-ink font-sans">
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>

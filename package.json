@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "concurrently \"tsx watch server.ts\" \"vite\"",
     "build": "vite build",
-    "start": "tsx server.ts"
+    "start": "tsx server.ts",
+    "db:reset": "tsx scripts/reset-db.ts"
   },
   "dependencies": {
     "cookie-parser": "^1.4.6",
