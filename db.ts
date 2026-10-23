@@ -299,7 +299,8 @@ function seedDatabase() {
   type SeedEvent = {
     title: string, date: string, start: string, end: string, theme: number, course: number,
     location: number, user: number, speaker: string, status: string, requester: string,
-    audience: string, resources: number[], reason?: string, ceremonial?: boolean, certificates?: boolean
+    audience: string, resources: number[], reason?: string, ceremonial?: boolean, certificates?: boolean,
+    description?: string
   };
 
   const events: SeedEvent[] = [
@@ -313,12 +314,14 @@ function seedDatabase() {
     { title: 'Hackathon Univille', date: day(1, 12), start: '08:00', end: '22:00', theme: 2, course: 3, location: 3, user: 2, speaker: 'Mentores convidados', status: 'REJEITADO', requester: 'Liga de Programação', audience: 'Acadêmicos', resources: [6], reason: 'O laboratório não pode ficar reservado por 14 horas. Divida o evento em dois turnos ou solicite o Auditório.' },
     { title: 'Workshop Noturno de UX', date: inDays(7), start: '19:30', end: '21:00', theme: 2, course: 1, location: 1, user: 2, speaker: 'Prof. Lucas Pereira', status: 'RASCUNHO', requester: 'Prof. Lucas Pereira', audience: 'Acadêmicos de SI e ES', resources: [1, 2] },
     { title: 'Semana Acadêmica (cancelada)', date: day(1, 25), start: '19:00', end: '22:00', theme: 3, course: 4, location: 1, user: 3, speaker: 'Diversos', status: 'CANCELADO', requester: 'Coord. Extensão', audience: 'Comunidade', resources: [1, 2, 3] },
+    // Happens today so the public portal shows the "Evento em Destaque Hoje" card
+    { title: 'Abertura do Software Engineering Challenge 2026', date: inDays(0), start: '18:00', end: '22:00', theme: 3, course: 2, location: 1, user: 3, speaker: 'Coordenação de Engenharia de Software', status: 'APROVADO', requester: 'Coord. Engenharia de Software', audience: 'Acadêmicos e comunidade', resources: [1, 2, 3, 4], ceremonial: true, certificates: true, description: 'Apresentação das equipes e defesa dos projetos do desafio no miniauditório.' },
   ];
 
   for (const e of events) {
     const course = courseById.get(e.course);
     const result = insertEvent.run(
-      e.title, null, e.date, e.start, e.end, e.theme, e.course, e.location,
+      e.title, e.description ?? null, e.date, e.start, e.end, e.theme, e.course, e.location,
       e.user, e.speaker, course.name, e.status, e.reason ?? null, e.requester, e.audience,
       'Atividade alinhada ao plano de extensão do curso.', 'Promover integração e formação complementar.',
       e.ceremonial ? 1 : 0, e.certificates ? 1 : 0, null, course.cost_center

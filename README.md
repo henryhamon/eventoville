@@ -8,8 +8,8 @@ Projeto desenvolvido para o **Software Engineering Challenge 2026 — Univille**
 
 | | |
 |---|---|
-| **Nome da equipe** | _[preencher]_ |
-| **Integrantes** | Henry Hamon · _[preencher demais integrantes]_ |
+| **Nome da equipe** | _[Eventoville]_ |
+| **Integrantes** | Henry Hamon · _[com IA]_ |
 
 ## Funcionalidades
 

@@ -1,4 +1,4 @@
-import { createSignal, onMount, For } from 'solid-js';
+import { createSignal, onMount, For, Show } from 'solid-js';
 import Header from './Header';
 import { currentUser, homeFor } from '../api';
 
@@ -48,6 +48,21 @@ function PublicPortal() {
     );
   };
 
+  // Today's approved events (local date), the one still running or next to start first
+  const todayEvents = () => {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const time = now.toTimeString().slice(0, 5);
+    return events()
+      .filter(e => e.event_date === today)
+      .sort((a, b) => Number(a.end_time <= time) - Number(b.end_time <= time) || a.start_time.localeCompare(b.start_time));
+  };
+
+  const isLive = (event: Event) => {
+    const time = new Date().toTimeString().slice(0, 5);
+    return event.start_time <= time && time < event.end_time;
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
     return date.toLocaleDateString('pt-BR');
@@ -79,6 +94,45 @@ function PublicPortal() {
           />
         </div>
       </div>
+
+      <Show when={todayEvents()[0]}>
+        {(featured) => (
+          <div class="max-w-[1400px] mx-auto px-6 mb-10">
+            <div class="relative rounded-[28px] overflow-hidden min-h-[300px] shadow-card" style={{ "background": "linear-gradient(135deg, #0E6641 0%, #328347 50%, #50916B 100%)" }}>
+              <div class="absolute inset-0 opacity-30" style={{ "background-image": "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)" }}></div>
+              <div class="absolute top-6 right-6 bg-white/15 backdrop-blur-md rounded-full px-4 py-1.5 text-white text-xs font-medium flex items-center gap-2">
+                <Show when={isLive(featured())} fallback={<>Hoje às {featured().start_time}</>}>
+                  <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> Acontecendo agora
+                </Show>
+              </div>
+              <div class="relative z-10 p-8 md:p-10 min-h-[300px] flex flex-col justify-between gap-8">
+                <div>
+                  <div class="text-white/80 text-sm font-medium mb-2">Evento em Destaque Hoje</div>
+                  <h1 class="text-white text-3xl md:text-5xl font-bold mb-3 leading-tight max-w-3xl">{featured().title}</h1>
+                  <p class="text-white/85 text-base max-w-2xl">
+                    {featured().description || [featured().theme_name, featured().realization].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+                <div class="flex items-end justify-between flex-wrap gap-4">
+                  <div class="flex items-center gap-6 md:gap-8 text-white flex-wrap">
+                    <div><div class="text-white/70 text-xs">Data</div><div class="font-semibold">{formatDate(featured().event_date)}</div></div>
+                    <div><div class="text-white/70 text-xs">Horário</div><div class="font-semibold">{featured().start_time}–{featured().end_time}</div></div>
+                    <div><div class="text-white/70 text-xs">Local</div><div class="font-semibold">{featured().location_name}</div></div>
+                    <Show when={featured().speaker}>
+                      <div><div class="text-white/70 text-xs">Palestrante</div><div class="font-semibold">{featured().speaker}</div></div>
+                    </Show>
+                  </div>
+                  <Show when={todayEvents().length > 1}>
+                    <div class="bg-white text-forest px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg">
+                      +{todayEvents().length - 1} outro(s) evento(s) hoje na agenda
+                    </div>
+                  </Show>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Show>
 
       <div class="max-w-[1400px] mx-auto px-6 mb-10">
         <div class="flex items-center justify-between mb-5">
