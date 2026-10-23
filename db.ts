@@ -75,6 +75,14 @@ export function initDatabase() {
       realization TEXT NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('RASCUNHO','AGUARDANDO_APROVACAO','REJEITADO','APROVADO','CANCELADO')),
       rejection_reason TEXT,
+      requester_name TEXT,
+      target_audience TEXT,
+      justification TEXT,
+      objective TEXT,
+      needs_ceremonial INTEGER DEFAULT 0,
+      needs_certificates INTEGER DEFAULT 0,
+      observations TEXT,
+      cost_center TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (theme_id) REFERENCES themes(id),
@@ -91,6 +99,18 @@ export function initDatabase() {
       PRIMARY KEY (event_id, resource_id),
       FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
       FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token TEXT NOT NULL UNIQUE,
+      user_id INTEGER NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 
@@ -229,6 +249,10 @@ export function getPublicEvents() {
   `);
   
   return stmt.all(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
+}
+
+export function getDb() {
+  return db;
 }
 
 export default db;
