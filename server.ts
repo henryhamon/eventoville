@@ -245,7 +245,26 @@ app.post('/api/events', requireAuth, (req, res) => {
     const db = getDb();
     const user = (req as any).user;
     const data = req.body;
-    
+
+    // Clients may only create drafts or submit for approval; APROVADO,
+    // REJEITADO and CANCELADO are reached exclusively through admin routes
+    const status = data.status === 'AGUARDANDO_APROVACAO' ? 'AGUARDANDO_APROVACAO' : 'RASCUNHO';
+
+    if (!data.title || !data.event_date || !data.start_time || !data.end_time || !data.location_id) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    if (data.start_time >= data.end_time) {
+      return res.status(400).json({ error: 'End time must be after start time' });
+    }
+    if (status === 'AGUARDANDO_APROVACAO') {
+      if (!data.requester_name) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      if (checkConflict(db, data.location_id, data.event_date, data.start_time, data.end_time)) {
+        return res.status(409).json({ error: 'Schedule conflict detected' });
+      }
+    }
+
     // Get cost center from course
     let costCenter = null;
     if (data.course_id) {
@@ -281,7 +300,7 @@ app.post('/api/events', requireAuth, (req, res) => {
       data.needs_certificates ? 1 : 0,
       data.observations || null,
       costCenter,
-      data.status || 'RASCUNHO',
+      status,
       user.userId
     );
     
@@ -361,12 +380,20 @@ app.put('/api/events/:id/reject', requireAdmin, (req, res) => {
   try {
     const db = getDb();
     const eventId = req.params.id;
-    const { rejection_reason } = req.body;
-    
+    const rejection_reason = typeof req.body.rejection_reason === 'string' ? req.body.rejection_reason.trim() : '';
+
     if (!rejection_reason) {
       return res.status(400).json({ error: 'Rejection reason required' });
     }
-    
+
+    const eventStmt = db.prepare('SELECT * FROM events WHERE id = ?');
+    const event = eventStmt.get(eventId) as any;
+
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (event.status !== 'AGUARDANDO_APROVACAO') {
+      return res.status(400).json({ error: 'Only events awaiting approval can be rejected' });
+    }
+
     const updateStmt = db.prepare("UPDATE events SET status = 'REJEITADO', rejection_reason = ?, updated_at = datetime('now') WHERE id = ?");
     updateStmt.run(rejection_reason, eventId);
     

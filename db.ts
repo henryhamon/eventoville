@@ -114,12 +114,39 @@ export function initDatabase() {
     )
   `);
 
+  migrateDatabase();
+
   // Check if seed data exists
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM events');
   const result = countStmt.get() as { count: number };
   
   if (result.count === 0) {
     seedDatabase();
+  }
+}
+
+// Add columns introduced after the initial schema (CREATE TABLE IF NOT EXISTS
+// does not alter tables that already exist)
+function migrateDatabase() {
+  const eventColumns: [string, string][] = [
+    ['requester_name', 'TEXT'],
+    ['target_audience', 'TEXT'],
+    ['justification', 'TEXT'],
+    ['objective', 'TEXT'],
+    ['needs_ceremonial', 'INTEGER DEFAULT 0'],
+    ['needs_certificates', 'INTEGER DEFAULT 0'],
+    ['observations', 'TEXT'],
+    ['cost_center', 'TEXT'],
+  ];
+
+  const existing = new Set(
+    (db.prepare('PRAGMA table_info(events)').all() as { name: string }[]).map(c => c.name)
+  );
+
+  for (const [name, definition] of eventColumns) {
+    if (!existing.has(name)) {
+      db.exec(`ALTER TABLE events ADD COLUMN ${name} ${definition}`);
+    }
   }
 }
 
