@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Evently — Plataforma de Gestão e Descoberta de Eventos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/dm-sans@5.0.0/index.min.css">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['"DM Sans"', 'sans-serif'] },
+        colors: {
+          bg: '#EFEFEF',
+          ink: '#121915',
+          forest: '#0E6641',
+          brand: '#328347',
+          sage: '#50916B',
+          mint: '#E8F5EE',
+          cream: '#FFF8E7',
+          sky: '#E6F0FB',
+          rose: '#FBE9EC',
+        },
+        boxShadow: {
+          soft: '0 2px 16px rgba(14, 102, 65, 0.06)',
+          card: '0 1px 2px rgba(0,0,0,0.03), 0 8px 24px rgba(14, 102, 65, 0.06)',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: 'DM Sans', sans-serif; background: #EFEFEF; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #D0D0D0; border-radius: 10px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .chip { transition: all .2s ease; }
+  .chip.active { background: #0E6641; color: #fff; }
+  .tab.active { background: #0E6641; color: #fff; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .event-block { transition: transform .2s ease, box-shadow .2s ease; }
+  .event-block:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(14,102,65,0.12); }
+  .sidebar-link { transition: all .15s ease; }
+  .sidebar-link:hover, .sidebar-link.active { background: rgba(255,255,255,0.08); }
+  .sidebar-link.active { background: #328347; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(10px);} to {opacity:1; transform: translateY(0);} }
+  .fade-up { animation: fadeUp .4s ease forwards; }
+  .avatar-stack > * { border: 2px solid #fff; }
+  .modal-overlay { background: rgba(18, 25, 21, 0.5); backdrop-filter: blur(4px); }
+  .modal-content { animation: fadeUp .3s ease; }
+  .time-row { height: 60px; }
+  .current-time-line { 
+    position: absolute; 
+    left: 0; 
+    right: 0; 
+    border-top: 2px dashed #328347;
+    z-index: 5;
+  }
+  .current-time-pill {
+    position: absolute;
+    left: -32px;
+    top: -10px;
+    background: #328347;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: 60px repeat(7, 1fr);
+    grid-auto-rows: 60px;
+  }
+</style>
+</head>
+<body class="text-ink min-h-screen">
+
+<!-- PROFILE SWITCHER -->
+<div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md rounded-full px-2 py-2 shadow-soft flex items-center gap-1 border border-black/5">
+  <button data-view="visitor" class="profile-btn px-4 py-2 rounded-full text-sm font-medium transition-all">Visitante</button>
+  <button data-view="user" class="profile-btn px-4 py-2 rounded-full text-sm font-medium transition-all">Usuário Logado</button>
+  <button data-view="admin" class="profile-btn px-4 py-2 rounded-full text-sm font-medium transition-all">Administrador</button>
+</div>
+
+<!-- ============================================================ -->
+<!-- VISÃO 1: VISITANTE -->
+<!-- ============================================================ -->
+<div id="view-visitor" class="view active pt-24 pb-16">
+  <div class="max-w-[1400px] mx-auto px-6 mb-6">
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-forest flex items-center justify-center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>
+        </div>
+        <div>
+          <div class="text-lg font-semibold">evently</div>
+          <div class="text-xs text-sage">Descubra experiências</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-forest hover:bg-mint transition">Entrar</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium bg-forest text-white hover:bg-ink transition">Criar Conta</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-full px-4 py-2.5 shadow-soft flex items-center gap-2 flex-wrap">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#328347" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Buscar eventos, artistas, locais..." class="flex-1 min-w-[180px] outline-none text-sm bg-transparent" />
+      <div class="hidden md:flex items-center gap-1.5 flex-wrap">
+        <span class="text-xs text-sage mr-1">In:</span>
+        <button class="chip active text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Shows</button>
+        <button class="chip text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Workshops</button>
+        <button class="chip text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Gratuitos</button>
+        <button class="chip text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Esta Semana</button>
+      </div>
+      <button class="ml-2 w-9 h-9 rounded-full bg-forest text-white flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-[1400px] mx-auto px-6 mb-10">
+    <div class="relative rounded-[28px] overflow-hidden h-[340px] shadow-card" style="background: linear-gradient(135deg, #0E6641 0%, #328347 50%, #50916B 100%);">
+      <div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%);"></div>
+      <div class="absolute top-6 right-6 bg-white/15 backdrop-blur-md rounded-full px-4 py-1.5 text-white text-xs font-medium flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> Ao vivo agora
+      </div>
+      <div class="relative z-10 p-10 h-full flex flex-col justify-between">
+        <div>
+          <div class="text-white/80 text-sm font-medium mb-2"> Evento em Destaque Hoje</div>
+          <h1 class="text-white text-4xl md:text-5xl font-bold mb-3 leading-tight">Festival Sonora<br/>São Paulo 2026</h1>
+          <p class="text-white/85 text-base max-w-lg">3 dias de música, arte e tecnologia com mais de 80 artistas nacionais e internacionais.</p>
+        </div>
+        <div class="flex items-end justify-between flex-wrap gap-4">
+          <div class="flex items-center gap-6 text-white">
+            <div><div class="text-white/70 text-xs">Data</div><div class="font-semibold">15–17 Nov</div></div>
+            <div><div class="text-white/70 text-xs">Local</div><div class="font-semibold">Parque Ibirapuera</div></div>
+            <div><div class="text-white/70 text-xs">A partir de</div><div class="font-semibold text-xl">R$ 189</div></div>
+          </div>
+          <button class="bg-white text-forest px-6 py-3 rounded-full font-semibold hover:bg-cream transition shadow-lg">Garantir Ingresso →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-[1400px] mx-auto px-6 mb-10">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-2xl font-bold">Explore por categoria</h2>
+      <button class="text-sm text-brand font-medium hover:underline">Ver todas →</button>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div class="bg-white rounded-2xl p-5 shadow-soft hover:shadow-card transition cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-mint flex items-center justify-center mb-3">🎵</div>
+        <div class="font-semibold text-sm">Shows</div>
+        <div class="text-xs text-sage mt-0.5">248 ativos</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-soft hover:shadow-card transition cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-sky flex items-center justify-center mb-3">💻</div>
+        <div class="font-semibold text-sm">Tech</div>
+        <div class="text-xs text-sage mt-0.5">124 ativos</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-soft hover:shadow-card transition cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-cream flex items-center justify-center mb-3"></div>
+        <div class="font-semibold text-sm">Arte</div>
+        <div class="text-xs text-sage mt-0.5">89 ativos</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-soft hover:shadow-card transition cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-rose flex items-center justify-center mb-3">🍽️</div>
+        <div class="font-semibold text-sm">Gastronomia</div>
+        <div class="text-xs text-sage mt-0.5">67 ativos</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-soft hover:shadow-card transition cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-mint flex items-center justify-center mb-3">🏃</div>
+        <div class="font-semibold text-sm">Esportes</div>
+        <div class="text-xs text-sage mt-0.5">54 ativos</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-soft hover:shadow-card transition cursor-pointer">
+        <div class="w-11 h-11 rounded-xl bg-sky flex items-center justify-center mb-3"></div>
+        <div class="font-semibold text-sm">Workshops</div>
+        <div class="text-xs text-sage mt-0.5">112 ativos</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-[1400px] mx-auto px-6">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="text-2xl font-bold">Programação da Semana</h2>
+        <p class="text-sm text-sage mt-1">Veja o que está acontecendo em São Paulo</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="w-9 h-9 rounded-full bg-white shadow-soft flex items-center justify-center hover:bg-mint transition">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button class="px-4 py-2 rounded-full bg-white shadow-soft text-sm font-medium">Hoje</button>
+        <button class="px-4 py-2 rounded-full bg-forest text-white text-sm font-medium">Semana</button>
+        <button class="px-4 py-2 rounded-full bg-white shadow-soft text-sm font-medium">Mês</button>
+        <button class="w-9 h-9 rounded-full bg-white shadow-soft flex items-center justify-center hover:bg-mint transition">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-[28px] p-6 shadow-card">
+      <div class="grid grid-cols-8 gap-2 mb-4">
+        <div></div>
+        <div class="text-center"><div class="text-xs text-sage font-medium">SEG</div><div class="text-lg font-bold">10/11</div></div>
+        <div class="text-center"><div class="text-xs text-sage font-medium">TER</div><div class="text-lg font-bold">11/11</div></div>
+        <div class="text-center"><div class="text-xs text-sage font-medium">QUA</div><div class="text-lg font-bold">12/11</div></div>
+        <div class="text-center bg-forest text-white rounded-2xl py-2"><div class="text-xs font-medium opacity-80">QUI</div><div class="text-lg font-bold">13/11</div></div>
+        <div class="text-center"><div class="text-xs text-sage font-medium">SEX</div><div class="text-lg font-bold">14/11</div></div>
+        <div class="text-center"><div class="text-xs text-sage font-medium">SÁB</div><div class="text-lg font-bold">15/11</div></div>
+        <div class="text-center"><div class="text-xs text-sage font-medium">DOM</div><div class="text-lg font-bold">16/11</div></div>
+      </div>
+
+      <div class="relative">
+        <div class="grid grid-cols-8 gap-2 min-h-[500px]">
+          <div class="space-y-0">
+            <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">08:00</div>
+            <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">09:00</div>
+            <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">10:00</div>
+            <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">11:00</div>
+            <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">12:00</div>
+            <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">14:00</div>
+            <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">16:00</div>
+            <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">19:00</div>
+          </div>
+          <div class="space-y-2">
+            <div class="event-block bg-mint rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-forest">09:00</div>
+              <div class="text-sm font-semibold mt-1">Workshop UX</div>
+              <div class="text-xs text-sage mt-0.5">Sala 302</div>
+              <div class="flex -space-x-2 mt-2 avatar-stack">
+                <div class="w-6 h-6 rounded-full bg-brand text-white text-[10px] flex items-center justify-center font-semibold">A</div>
+                <div class="w-6 h-6 rounded-full bg-sage text-white text-[10px] flex items-center justify-center font-semibold">B</div>
+                <div class="w-6 h-6 rounded-full bg-forest text-white text-[10px] flex items-center justify-center font-semibold">+3</div>
+              </div>
+            </div>
+            <div class="event-block bg-sky rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-blue-700">14:00</div>
+              <div class="text-sm font-semibold mt-1">Meetup Dev</div>
+              <div class="text-xs text-sage mt-0.5">Online · Zoom</div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="event-block bg-cream rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-amber-700">10:30</div>
+              <div class="text-sm font-semibold mt-1">Feira Gastronômica</div>
+              <div class="text-xs text-sage mt-0.5">Vila Madalena</div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="event-block bg-rose rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-rose-700">19:00</div>
+              <div class="text-sm font-semibold mt-1">Stand-up Comedy</div>
+              <div class="text-xs text-sage mt-0.5">Teatro 2</div>
+              <div class="flex -space-x-2 mt-2 avatar-stack">
+                <div class="w-6 h-6 rounded-full bg-brand text-white text-[10px] flex items-center justify-center font-semibold">C</div>
+                <div class="w-6 h-6 rounded-full bg-sage text-white text-[10px] flex items-center justify-center font-semibold">+8</div>
+              </div>
+            </div>
+            <div class="event-block bg-mint rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-forest">21:00</div>
+              <div class="text-sm font-semibold mt-1">Yoga ao ar livre</div>
+              <div class="text-xs text-sage mt-0.5">Parque Ibirapuera</div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="event-block bg-brand text-white rounded-2xl p-3 cursor-pointer shadow-card">
+              <div class="text-xs font-semibold opacity-90">11:00</div>
+              <div class="text-sm font-semibold mt-1">Tech Conference</div>
+              <div class="text-xs opacity-80 mt-0.5">Auditório principal</div>
+              <button class="mt-2 w-full bg-white text-forest text-xs font-semibold py-1.5 rounded-full">Ver detalhes</button>
+            </div>
+            <div class="event-block bg-sage text-white rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold opacity-90">16:00</div>
+              <div class="text-sm font-semibold mt-1">Hackathon</div>
+              <div class="text-xs opacity-80 mt-0.5">Lab 5</div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="event-block bg-cream rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-amber-700">20:00</div>
+              <div class="text-sm font-semibold mt-1">Festival Sonora</div>
+              <div class="text-xs text-sage mt-0.5">Parque Ibirapuera</div>
+              <div class="flex -space-x-2 mt-2 avatar-stack">
+                <div class="w-6 h-6 rounded-full bg-brand text-white text-[10px] flex items-center justify-center font-semibold">D</div>
+                <div class="w-6 h-6 rounded-full bg-sage text-white text-[10px] flex items-center justify-center font-semibold">+42</div>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="event-block bg-rose rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-rose-700">15:00</div>
+              <div class="text-sm font-semibold mt-1">Exposição de Arte</div>
+              <div class="text-xs text-sage mt-0.5">MASP</div>
+            </div>
+            <div class="event-block bg-sky rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-blue-700">18:00</div>
+              <div class="text-sm font-semibold mt-1">Palestra IA</div>
+              <div class="text-xs text-sage mt-0.5">Online</div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="event-block bg-mint rounded-2xl p-3 cursor-pointer">
+              <div class="text-xs font-semibold text-forest">10:00</div>
+              <div class="text-sm font-semibold mt-1">Corrida 5K</div>
+              <div class="text-xs text-sage mt-0.5">Av. Paulista</div>
+            </div>
+          </div>
+        </div>
+        <div class="current-time-line" style="top: 140px;">
+          <div class="current-time-pill">10:25</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- VISÃO 2: USUÁRIO LOGADO -->
+<!-- ============================================================ -->
+<div id="view-user" class="view pt-24 pb-16">
+  <div class="max-w-[1400px] mx-auto px-6 flex gap-6">
+    <aside class="w-[240px] shrink-0 bg-ink rounded-[28px] p-5 text-white h-fit sticky top-24">
+      <div class="flex items-center gap-2 mb-8">
+        <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+        </div>
+        <div class="font-semibold">evently</div>
+      </div>
+
+      <div class="text-[11px] uppercase tracking-wider text-white/50 mb-3 px-3">Geral</div>
+      <nav class="space-y-1">
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Explorar Eventos</a>
+        <a class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Minha Agenda</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3z"/><path d="M7 15v2a5 5 0 0 0 10 0v-2"/></svg>Meus Ingressos</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>Certificados</a>
+      </nav>
+
+      <div class="text-[11px] uppercase tracking-wider text-white/50 mb-3 mt-6 px-3">Ferramentas</div>
+      <nav class="space-y-1">
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Mensagens</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configurações</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/70" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair</a>
+      </nav>
+
+      <div class="mt-8 p-3 rounded-2xl bg-white/5 border border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-sage flex items-center justify-center font-semibold text-sm">OL</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold truncate">Dra. Olivia</div>
+            <div class="text-xs text-white/60 truncate">olivia@email.com</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-3xl font-bold">Fique por dentro, Dra. Olivia! 👋</h1>
+          <p class="text-sage text-sm mt-1">Você tem 4 eventos esta semana</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center hover:bg-mint transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </button>
+          <button class="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center hover:bg-mint transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-full px-4 py-2.5 shadow-soft flex items-center gap-2 mb-6">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#328347" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Buscar na minha agenda..." class="flex-1 outline-none text-sm bg-transparent" />
+        <div class="hidden md:flex items-center gap-1.5">
+          <span class="text-xs text-sage mr-1">In:</span>
+          <button class="chip active text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Minha Agenda</button>
+          <button class="chip text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Ingressos</button>
+          <button class="chip text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Certificados</button>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold">Ingressos pendentes</h3>
+          <button class="text-sm text-brand font-medium hover:underline">Ver todos →</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="bg-white rounded-2xl p-4 shadow-soft flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-mint flex items-center justify-center text-xl">🎵</div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-sm truncate">Festival Sonora SP</div>
+              <div class="text-xs text-sage">15 Nov · Parque Ibirapuera</div>
+            </div>
+            <button onclick="openModal('qr')" class="px-3 py-1.5 rounded-full bg-forest text-white text-xs font-semibold hover:bg-ink transition">Check-in</button>
+          </div>
+          <div class="bg-white rounded-2xl p-4 shadow-soft flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-sky flex items-center justify-center text-xl">💻</div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-sm truncate">Tech Conference 2026</div>
+              <div class="text-xs text-sage">13 Nov · Auditório</div>
+            </div>
+            <button onclick="openModal('qr')" class="px-3 py-1.5 rounded-full bg-brand text-white text-xs font-semibold hover:bg-forest transition">QR Code</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-[28px] p-6 shadow-card">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-xl font-bold">Minha Agenda Semanal</h2>
+            <p class="text-xs text-sage mt-1">10–16 Nov, 2026</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-4 py-2 rounded-full bg-mint text-forest text-sm font-medium">Hoje</button>
+            <button class="px-4 py-2 rounded-full bg-forest text-white text-sm font-medium">Semana</button>
+            <button class="px-4 py-2 rounded-full bg-bg text-sage text-sm font-medium">Mês</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-8 gap-2 mb-4">
+          <div></div>
+          <div class="text-center"><div class="text-xs text-sage font-medium">SEG</div><div class="text-lg font-bold">10/11</div></div>
+          <div class="text-center"><div class="text-xs text-sage font-medium">TER</div><div class="text-lg font-bold">11/11</div></div>
+          <div class="text-center"><div class="text-xs text-sage font-medium">QUA</div><div class="text-lg font-bold">12/11</div></div>
+          <div class="text-center bg-forest text-white rounded-2xl py-2"><div class="text-xs font-medium opacity-80">QUI</div><div class="text-lg font-bold">13/11</div></div>
+          <div class="text-center"><div class="text-xs text-sage font-medium">SEX</div><div class="text-lg font-bold">14/11</div></div>
+          <div class="text-center"><div class="text-xs text-sage font-medium">SÁB</div><div class="text-lg font-bold">15/11</div></div>
+          <div class="text-center"><div class="text-xs text-sage font-medium">DOM</div><div class="text-lg font-bold">16/11</div></div>
+        </div>
+
+        <div class="relative">
+          <div class="grid grid-cols-8 gap-2 min-h-[520px]">
+            <div class="space-y-0">
+              <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">08:00</div>
+              <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">09:00</div>
+              <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">10:00</div>
+              <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">11:00</div>
+              <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">12:00</div>
+              <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">14:00</div>
+              <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">16:00</div>
+              <div class="time-row flex items-center justify-end pr-2 text-xs text-sage font-medium">19:00</div>
+            </div>
+            <div class="space-y-2">
+              <div class="event-block bg-mint rounded-2xl p-3">
+                <div class="text-xs font-semibold text-forest">09:00</div>
+                <div class="text-sm font-semibold mt-1">Workshop UX</div>
+                <div class="text-xs text-sage mt-0.5">Sala 302</div>
+                <div class="flex -space-x-2 mt-2 avatar-stack">
+                  <div class="w-6 h-6 rounded-full bg-brand text-white text-[10px] flex items-center justify-center font-semibold">A</div>
+                  <div class="w-6 h-6 rounded-full bg-sage text-white text-[10px] flex items-center justify-center font-semibold">B</div>
+                  <div class="w-6 h-6 rounded-full bg-forest text-white text-[10px] flex items-center justify-center font-semibold">+3</div>
+                </div>
+                <button onclick="openModal('qr')" class="mt-2 w-full bg-forest text-white text-xs font-semibold py-1.5 rounded-full">Join</button>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="event-block bg-sky rounded-2xl p-3">
+                <div class="text-xs font-semibold text-blue-700">14:00</div>
+                <div class="text-sm font-semibold mt-1">Meetup Dev</div>
+                <div class="text-xs text-sage mt-0.5">Online · Zoom</div>
+                <button onclick="openModal('qr')" class="mt-2 w-full bg-brand text-white text-xs font-semibold py-1.5 rounded-full">Acessar Link</button>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="event-block bg-rose rounded-2xl p-3">
+                <div class="text-xs font-semibold text-rose-700">19:00</div>
+                <div class="text-sm font-semibold mt-1">Stand-up</div>
+                <div class="text-xs text-sage mt-0.5">Teatro 2</div>
+                <div class="flex -space-x-2 mt-2 avatar-stack">
+                  <div class="w-6 h-6 rounded-full bg-brand text-white text-[10px] flex items-center justify-center font-semibold">C</div>
+                  <div class="w-6 h-6 rounded-full bg-sage text-white text-[10px] flex items-center justify-center font-semibold">+8</div>
+                </div>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="event-block bg-brand text-white rounded-2xl p-3 shadow-card">
+                <div class="text-xs font-semibold opacity-90">11:00</div>
+                <div class="text-sm font-semibold mt-1">Tech Conference</div>
+                <div class="text-xs opacity-80 mt-0.5">Auditório principal</div>
+                <button onclick="openModal('qr')" class="mt-2 w-full bg-white text-forest text-xs font-semibold py-1.5 rounded-full">Check-in</button>
+              </div>
+              <div class="event-block bg-sage text-white rounded-2xl p-3">
+                <div class="text-xs font-semibold opacity-90">16:00</div>
+                <div class="text-sm font-semibold mt-1">Hackathon</div>
+                <div class="text-xs opacity-80 mt-0.5">Lab 5</div>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="event-block bg-cream rounded-2xl p-3">
+                <div class="text-xs font-semibold text-amber-700">20:00</div>
+                <div class="text-sm font-semibold mt-1">Festival Sonora</div>
+                <div class="text-xs text-sage mt-0.5">Parque Ibirapuera</div>
+                <div class="flex -space-x-2 mt-2 avatar-stack">
+                  <div class="w-6 h-6 rounded-full bg-brand text-white text-[10px] flex items-center justify-center font-semibold">D</div>
+                  <div class="w-6 h-6 rounded-full bg-sage text-white text-[10px] flex items-center justify-center font-semibold">+42</div>
+                </div>
+                <button onclick="openModal('qr')" class="mt-2 w-full bg-forest text-white text-xs font-semibold py-1.5 rounded-full">QR Code</button>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="event-block bg-rose rounded-2xl p-3">
+                <div class="text-xs font-semibold text-rose-700">15:00</div>
+                <div class="text-sm font-semibold mt-1">Exposição MASP</div>
+                <div class="text-xs text-sage mt-0.5">MASP</div>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="event-block bg-mint rounded-2xl p-3">
+                <div class="text-xs font-semibold text-forest">10:00</div>
+                <div class="text-sm font-semibold mt-1">Corrida 5K</div>
+                <div class="text-xs text-sage mt-0.5">Av. Paulista</div>
+              </div>
+            </div>
+          </div>
+          <div class="current-time-line" style="top: 140px;">
+            <div class="current-time-pill">10:25</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 bg-white rounded-[28px] p-6 shadow-card">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold">Últimas transações</h3>
+          <div class="flex items-center gap-1.5">
+            <button class="tab active text-xs px-3 py-1.5 rounded-full bg-mint text-forest font-medium">Todos</button>
+            <button class="tab text-xs px-3 py-1.5 rounded-full bg-bg text-sage font-medium">Presenciais</button>
+            <button class="tab text-xs px-3 py-1.5 rounded-full bg-bg text-sage font-medium">Online</button>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-bg transition">
+            <div class="w-10 h-10 rounded-xl bg-mint flex items-center justify-center text-lg">🎵</div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-sm">Festival Sonora SP</div>
+              <div class="text-xs text-sage">#SON-2026-001 · 10 Nov</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-brand">R$ 189,00</div>
+              <div class="text-xs text-sage">Pago</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-bg transition">
+            <div class="w-10 h-10 rounded-xl bg-sky flex items-center justify-center text-lg">💻</div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-sm">Tech Conference 2026</div>
+              <div class="text-xs text-sage">#TEC-2026-042 · 08 Nov</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-brand">R$ 299,00</div>
+              <div class="text-xs text-sage">Pago</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-bg transition">
+            <div class="w-10 h-10 rounded-xl bg-cream flex items-center justify-center text-lg">️</div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-sm">Feira Gastronômica</div>
+              <div class="text-xs text-sage">#FGA-2026-118 · 05 Nov</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-brand">R$ 45,00</div>
+              <div class="text-xs text-sage">Pago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- VISÃO 3: ADMINISTRADOR -->
+<!-- ============================================================ -->
+<div id="view-admin" class="view pt-24 pb-16">
+  <div class="max-w-[1400px] mx-auto px-6 flex gap-6">
+    <aside class="w-[240px] shrink-0 bg-ink rounded-[28px] p-5 text-white h-fit sticky top-24">
+      <div class="flex items-center gap-2 mb-8">
+        <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+        </div>
+        <div class="font-semibold">evently</div>
+      </div>
+
+      <div class="text-[11px] uppercase tracking-wider text-white/50 mb-3 px-3">Geral</div>
+      <nav class="space-y-1">
+        <a class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Cronograma</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Participantes</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Estatísticas</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3z"/><path d="M7 15v2a5 5 0 0 0 10 0v-2"/></svg>Financeiro</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>Documentos</a>
+      </nav>
+
+      <div class="text-[11px] uppercase tracking-wider text-white/50 mb-3 mt-6 px-3">Ferramentas</div>
+      <nav class="space-y-1">
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configurações</a>
+        <a class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/70" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair</a>
+      </nav>
+
+      <div class="mt-8 p-3 rounded-2xl bg-white/5 border border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-sage flex items-center justify-center font-semibold text-sm">AD</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold truncate">Admin</div>
+            <div class="text-xs text-white/60 truncate">admin@evently.com</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-3xl font-bold">Dashboard Administrativo</h1>
+          <p class="text-sage text-sm mt-1">Festival Sonora SP 2026 · Visão geral</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openModal('create')" class="px-4 py-2.5 rounded-full bg-brand text-white text-sm font-semibold hover:bg-forest transition shadow-soft flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Criar Evento
+          </button>
+          <button class="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center hover:bg-mint transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </button>
+          <button class="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center hover:bg-mint transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-full px-4 py-2.5 shadow-soft flex items-center gap-2 mb-6">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#328347" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Buscar participantes, transações, eventos..." class="flex-1 outline-none text-sm bg-transparent" />
+        <div class="hidden md:flex items-center gap-1.5">
+          <span class="text-xs text-sage mr-1">In:</span>
+          <button class="chip active text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Participantes</button>
+          <button class="chip text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Faturamento</button>
+          <button class="chip text-xs px-3 py-1 rounded-full bg-mint text-forest font-medium">Relatórios</button>
+        </div>
+      </div>
+
+      <!-- GRID PRINCIPAL: Donut + (Aguardando + Transações) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Donut (1/3) -->
+        <div class="bg-white rounded-[28px] p-6 shadow-card">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <div class="text-sm text-sage">Ingressos vendidos</div>
+              <div class="text-3xl font-bold mt-1">23,4k</div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button class="tab active text-xs px-3 py-1.5 rounded-full bg-mint text-forest font-medium">Inscritos</button>
+              <button class="tab text-xs px-3 py-1.5 rounded-full bg-bg text-sage font-medium">Receita</button>
+            </div>
+          </div>
+          <div class="flex items-center justify-center relative">
+            <svg width="220" height="220" viewBox="0 0 220 220">
+              <circle cx="110" cy="110" r="80" fill="none" stroke="#EFEFEF" stroke-width="28"/>
+              <circle cx="110" cy="110" r="80" fill="none" stroke="#0E6641" stroke-width="28" stroke-dasharray="175.93 502.65" stroke-dashoffset="0" transform="rotate(-90 110 110)" stroke-linecap="round"/>
+              <circle cx="110" cy="110" r="80" fill="none" stroke="#328347" stroke-width="28" stroke-dasharray="150.8 502.65" stroke-dashoffset="-175.93" transform="rotate(-90 110 110)" stroke-linecap="round"/>
+              <circle cx="110" cy="110" r="80" fill="none" stroke="#50916B" stroke-width="28" stroke-dasharray="125.66 502.65" stroke-dashoffset="-326.73" transform="rotate(-90 110 110)" stroke-linecap="round"/>
+              <circle cx="110" cy="110" r="80" fill="none" stroke="#E8F5EE" stroke-width="28" stroke-dasharray="50.27 502.65" stroke-dashoffset="-452.39" transform="rotate(-90 110 110)" stroke-linecap="round"/>
+              <g transform="translate(110,30)">
+                <circle cx="0" cy="0" r="14" fill="#0E6641"/>
+                <text x="0" y="5" text-anchor="middle" fill="white" font-size="12" font-weight="bold">👑</text>
+              </g>
+              <g transform="translate(180,110)">
+                <circle cx="0" cy="0" r="14" fill="#328347"/>
+                <text x="0" y="5" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🎟️</text>
+              </g>
+              <g transform="translate(110,190)">
+                <circle cx="0" cy="0" r="14" fill="#50916B"/>
+                <text x="0" y="5" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🎫</text>
+              </g>
+              <g transform="translate(40,110)">
+                <circle cx="0" cy="0" r="14" fill="#E8F5EE"/>
+                <text x="0" y="5" text-anchor="middle" fill="#0E6641" font-size="12" font-weight="bold">🎁</text>
+              </g>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <div class="text-4xl font-bold text-ink">23,4k</div>
+              <div class="text-xs text-sage font-medium">Ingressos</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 mt-4">
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-3 h-3 rounded-full bg-forest"></span>
+              <span class="text-sage">VIP</span>
+              <span class="font-semibold ml-auto">8.2k</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-3 h-3 rounded-full bg-brand"></span>
+              <span class="text-sage">Lote 2</span>
+              <span class="font-semibold ml-auto">7.0k</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-3 h-3 rounded-full bg-sage"></span>
+              <span class="text-sage">Lote 1</span>
+              <span class="font-semibold ml-auto">5.9k</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-3 h-3 rounded-full bg-mint border border-brand/30"></span>
+              <span class="text-sage">Cortesia</span>
+              <span class="font-semibold ml-auto">2.3k</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna direita (2/3): Aguardando + Transações empilhados -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Aguardando aprovação -->
+          <div class="bg-white rounded-[28px] p-6 shadow-card">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold">Aguardando aprovação</h3>
+              <span class="text-xs text-sage">2 pendentes</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="flex items-center gap-3 p-3 rounded-2xl bg-bg">
+                <div class="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-sage flex items-center justify-center text-white font-semibold text-sm">SW</div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold text-sm">Samantha Williams</div>
+                  <div class="text-xs text-sage">VIP · Reserva Confirmada</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-sage">09:18 AM</div>
+                  <button class="mt-1 px-3 py-1 rounded-full bg-forest text-white text-xs font-semibold">Aprovar</button>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 rounded-2xl bg-bg">
+                <div class="w-11 h-11 rounded-full bg-gradient-to-br from-sage to-brand flex items-center justify-center text-white font-semibold text-sm">AW</div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold text-sm">Amy White</div>
+                  <div class="text-xs text-sage">2026 · Video Consultation</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-sage">09:48 AM</div>
+                  <button class="mt-1 px-3 py-1 rounded-full bg-brand text-white text-xs font-semibold">Solicitar pgto</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Últimas transações -->
+          <div class="bg-white rounded-[28px] p-6 shadow-card">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold">Últimas transações</h3>
+              <button class="text-sm text-brand font-medium hover:underline">Ver todas →</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="p-4 rounded-2xl bg-mint border border-brand/10">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-xs text-forest/70 font-medium">Entrada</div>
+                  <div class="text-[10px] text-forest/60">#SON-001-76494</div>
+                </div>
+                <div class="text-2xl font-bold text-forest">+ R$ 568,56</div>
+                <div class="text-xs text-forest/70 mt-1">15 min atrás</div>
+                <div class="text-[11px] text-forest/60 mt-2">#SON-001-76494</div>
+              </div>
+              <div class="p-4 rounded-2xl bg-mint border border-brand/10">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-xs text-forest/70 font-medium">Entrada</div>
+                  <div class="text-[10px] text-forest/60">#TEC-002-284657</div>
+                </div>
+                <div class="text-2xl font-bold text-forest">+ R$ 465,41</div>
+                <div class="text-xs text-forest/70 mt-1">1h atrás</div>
+                <div class="text-[11px] text-forest/60 mt-2">#TEC-002-284657</div>
+              </div>
+              <div class="p-4 rounded-2xl bg-bg border border-black/5">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-xs text-sage font-medium">Reembolso</div>
+                  <div class="text-[10px] text-sage">#FGA-003-5476856</div>
+                </div>
+                <div class="text-2xl font-bold text-sage">- R$ 45,00</div>
+                <div class="text-xs text-sage mt-1">3h atrás</div>
+                <div class="text-[11px] text-sage mt-2">#FGA-003-5476856</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRID INFERIOR: KPIs + Tabela -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- KPIs empilhados (1/3) -->
+        <div class="space-y-3">
+          <div class="bg-mint rounded-[24px] p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <span class="text-xs font-semibold bg-white/80 text-forest px-2 py-1 rounded-full">↑ +13%</span>
+            </div>
+            <div class="text-xs text-forest/70 mt-3 font-medium">Pagamentos recebidos</div>
+            <div class="text-2xl font-bold text-forest mt-1">R$ 14.568</div>
+            <div class="text-[11px] text-forest/60 mt-1">Total recebido este mês</div>
+          </div>
+          <div class="bg-sky rounded-[24px] p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              </div>
+              <span class="text-xs font-semibold bg-white/80 text-blue-700 px-2 py-1 rounded-full">↑ +4%</span>
+            </div>
+            <div class="text-xs text-blue-700/70 mt-3 font-medium">Pagamentos pendentes</div>
+            <div class="text-2xl font-bold text-blue-700 mt-1">R$ 6.234</div>
+            <div class="text-[11px] text-blue-700/60 mt-1">Aguardando confirmação</div>
+          </div>
+          <div class="bg-cream rounded-[24px] p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
+              </div>
+              <span class="text-xs font-semibold bg-white/80 text-amber-700 px-2 py-1 rounded-full">↑ +17%</span>
+            </div>
+            <div class="text-xs text-amber-700/70 mt-3 font-medium">Cortesias / Patrocínios</div>
+            <div class="text-2xl font-bold text-amber-700 mt-1">R$ 3.786</div>
+            <div class="text-[11px] text-amber-700/60 mt-1">Valor coberto por parceiros</div>
+          </div>
+        </div>
+
+        <!-- Tabela (2/3) -->
+        <div class="lg:col-span-2 bg-white rounded-[28px] p-6 shadow-card">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h3 class="font-semibold">Inscritos e Faturamento</h3>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button class="tab active text-xs px-3 py-1.5 rounded-full bg-mint text-forest font-medium">Todos</button>
+              <button class="tab text-xs px-3 py-1.5 rounded-full bg-bg text-sage font-medium">Lote 1</button>
+              <button class="tab text-xs px-3 py-1.5 rounded-full bg-bg text-sage font-medium">VIP</button>
+              <button class="tab text-xs px-3 py-1.5 rounded-full bg-bg text-sage font-medium">Corporativo</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-xs text-sage border-b border-black/5">
+                  <th class="text-left py-3 px-2 font-medium">Tipo</th>
+                  <th class="text-left py-3 px-2 font-medium">Data</th>
+                  <th class="text-left py-3 px-2 font-medium">Participante</th>
+                  <th class="text-left py-3 px-2 font-medium">Valor</th>
+                  <th class="text-left py-3 px-2 font-medium">Status</th>
+                  <th class="text-right py-3 px-2 font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-black/5 hover:bg-bg/50 transition">
+                  <td class="py-3 px-2"><span class="px-2 py-1 rounded-full bg-mint text-forest text-xs font-medium">VIP</span></td>
+                  <td class="py-3 px-2 text-sage">10/11/26</td>
+                  <td class="py-3 px-2">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand to-sage flex items-center justify-center text-white text-xs font-semibold">RM</div>
+                      <div>
+                        <div class="font-medium">Rachel Meyers</div>
+                        <div class="text-xs text-sage">rachel@email.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-2 font-semibold">R$ 849,00</td>
+                  <td class="py-3 px-2"><span class="px-2.5 py-1 rounded-full bg-mint text-forest text-xs font-semibold">Pago</span></td>
+                  <td class="py-3 px-2 text-right">
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center" title="Baixar comprovante">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    </button>
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center" title="Enviar mensagem">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="border-b border-black/5 hover:bg-bg/50 transition">
+                  <td class="py-3 px-2"><span class="px-2 py-1 rounded-full bg-sky text-blue-700 text-xs font-medium">Corporativo</span></td>
+                  <td class="py-3 px-2 text-sage">10/11/26</td>
+                  <td class="py-3 px-2">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-sage to-brand flex items-center justify-center text-white text-xs font-semibold">SW</div>
+                      <div>
+                        <div class="font-medium">Samantha Williams</div>
+                        <div class="text-xs text-sage">samantha@corp.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-2 font-semibold">R$ 345,00</td>
+                  <td class="py-3 px-2"><span class="px-2.5 py-1 rounded-full bg-cream text-amber-700 text-xs font-semibold">Pendente</span></td>
+                  <td class="py-3 px-2 text-right">
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    </button>
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="border-b border-black/5 hover:bg-bg/50 transition">
+                  <td class="py-3 px-2"><span class="px-2 py-1 rounded-full bg-brand text-white text-xs font-medium">Lote 1</span></td>
+                  <td class="py-3 px-2 text-sage">09/11/26</td>
+                  <td class="py-3 px-2">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand to-forest flex items-center justify-center text-white text-xs font-semibold">AW</div>
+                      <div>
+                        <div class="font-medium">Amy White</div>
+                        <div class="text-xs text-sage">amy@email.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-2 font-semibold">R$ 189,00</td>
+                  <td class="py-3 px-2"><span class="px-2.5 py-1 rounded-full bg-mint text-forest text-xs font-semibold">Pago</span></td>
+                  <td class="py-3 px-2 text-right">
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    </button>
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="border-b border-black/5 hover:bg-bg/50 transition">
+                  <td class="py-3 px-2"><span class="px-2 py-1 rounded-full bg-sky text-blue-700 text-xs font-medium">Online</span></td>
+                  <td class="py-3 px-2 text-sage">09/11/26</td>
+                  <td class="py-3 px-2">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-sage to-forest flex items-center justify-center text-white text-xs font-semibold">TY</div>
+                      <div>
+                        <div class="font-medium">Tyler Young</div>
+                        <div class="text-xs text-sage">tyler@email.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-2 font-semibold">R$ 45,00</td>
+                  <td class="py-3 px-2"><span class="px-2.5 py-1 rounded-full bg-mint text-forest text-xs font-semibold">Pago</span></td>
+                  <td class="py-3 px-2 text-right">
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    </button>
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="hover:bg-bg/50 transition">
+                  <td class="py-3 px-2"><span class="px-2 py-1 rounded-full bg-rose text-rose-700 text-xs font-medium">Cancelado</span></td>
+                  <td class="py-3 px-2 text-sage">08/11/26</td>
+                  <td class="py-3 px-2">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-rose-300 to-rose-500 flex items-center justify-center text-white text-xs font-semibold">RM</div>
+                      <div>
+                        <div class="font-medium">Rachel Meyers</div>
+                        <div class="text-xs text-sage">rachel@email.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-2 font-semibold line-through text-sage">R$ 345,00</td>
+                  <td class="py-3 px-2"><span class="px-2.5 py-1 rounded-full bg-rose text-rose-700 text-xs font-semibold">Cancelado</span></td>
+                  <td class="py-3 px-2 text-right">
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    </button>
+                    <button class="w-8 h-8 rounded-full hover:bg-mint inline-flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODAL QR CODE -->
+<div id="modal-qr" class="fixed inset-0 z-[100] hidden items-center justify-center modal-overlay">
+  <div class="modal-content bg-white rounded-[28px] p-8 max-w-sm w-full mx-4 shadow-card">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-xl font-bold">Seu Ingresso</h3>
+      <button onclick="closeModal('qr')" class="w-8 h-8 rounded-full bg-bg flex items-center justify-center hover:bg-mint transition">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="bg-mint rounded-2xl p-6 flex flex-col items-center">
+      <svg width="180" height="180" viewBox="0 0 180 180" class="mb-4">
+        <rect width="180" height="180" fill="white" rx="12"/>
+        <g fill="#0E6641">
+          <rect x="20" y="20" width="40" height="40" rx="4"/>
+          <rect x="25" y="25" width="30" height="30" rx="2" fill="white"/>
+          <rect x="30" y="30" width="20" height="20" rx="1"/>
+          <rect x="120" y="20" width="40" height="40" rx="4"/>
+          <rect x="125" y="25" width="30" height="30" rx="2" fill="white"/>
+          <rect x="130" y="30" width="20" height="20" rx="1"/>
+          <rect x="20" y="120" width="40" height="40" rx="4"/>
+          <rect x="25" y="125" width="30" height="30" rx="2" fill="white"/>
+          <rect x="30" y="130" width="20" height="20" rx="1"/>
+          <rect x="70" y="20" width="10" height="10"/>
+          <rect x="90" y="20" width="10" height="10"/>
+          <rect x="70" y="40" width="10" height="10"/>
+          <rect x="80" y="30" width="10" height="10"/>
+          <rect x="100" y="40" width="10" height="10"/>
+          <rect x="70" y="70" width="10" height="10"/>
+          <rect x="90" y="70" width="10" height="10"/>
+          <rect x="110" y="70" width="10" height="10"/>
+          <rect x="70" y="90" width="10" height="10"/>
+          <rect x="100" y="90" width="10" height="10"/>
+          <rect x="120" y="80" width="10" height="10"/>
+          <rect x="140" y="90" width="10" height="10"/>
+          <rect x="160" y="80" width="10" height="10"/>
+          <rect x="70" y="110" width="10" height="10"/>
+          <rect x="90" y="120" width="10" height="10"/>
+          <rect x="110" y="110" width="10" height="10"/>
+          <rect x="130" y="120" width="10" height="10"/>
+          <rect x="150" y="110" width="10" height="10"/>
+          <rect x="70" y="140" width="10" height="10"/>
+          <rect x="90" y="150" width="10" height="10"/>
+          <rect x="110" y="140" width="10" height="10"/>
+          <rect x="130" y="150" width="10" height="10"/>
+          <rect x="150" y="140" width="10" height="10"/>
+          <rect x="160" y="160" width="10" height="10"/>
+        </g>
+      </svg>
+      <div class="text-center">
+        <div class="font-bold text-lg">Festival Sonora SP</div>
+        <div class="text-sm text-sage mt-1">15 Nov 2026 · Parque Ibirapuera</div>
+        <div class="text-xs text-sage mt-2">Lote VIP · Assento A-12</div>
+      </div>
+    </div>
+    <button onclick="closeModal('qr')" class="mt-4 w-full bg-forest text-white py-3 rounded-full font-semibold hover:bg-ink transition">Fechar</button>
+  </div>
+</div>
+
+<!-- MODAL CRIAR EVENTO -->
+<div id="modal-create" class="fixed inset-0 z-[100] hidden items-center justify-center modal-overlay">
+  <div class="modal-content bg-white rounded-[28px] p-8 max-w-lg w-full mx-4 shadow-card max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-xl font-bold">Criar Novo Evento</h3>
+      <button onclick="closeModal('create')" class="w-8 h-8 rounded-full bg-bg flex items-center justify-center hover:bg-mint transition">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E6641" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <form onsubmit="event.preventDefault(); closeModal('create'); alert('Evento criado com sucesso!');" class="space-y-4">
+      <div>
+        <label class="text-sm font-medium text-ink mb-1 block">Nome do Evento</label>
+        <input type="text" placeholder="Ex: Festival Sonora 2026" class="w-full px-4 py-2.5 rounded-xl bg-bg border border-black/5 outline-none focus:border-brand text-sm" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium text-ink mb-1 block">Data Início</label>
+          <input type="date" class="w-full px-4 py-2.5 rounded-xl bg-bg border border-black/5 outline-none focus:border-brand text-sm" />
+        </div>
+        <div>
+          <label class="text-sm font-medium text-ink mb-1 block">Data Fim</label>
+          <input type="date" class="w-full px-4 py-2.5 rounded-xl bg-bg border border-black/5 outline-none focus:border-brand text-sm" />
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-medium text-ink mb-1 block">Local</label>
+        <input type="text" placeholder="Ex: Parque Ibirapuera, São Paulo" class="w-full px-4 py-2.5 rounded-xl bg-bg border border-black/5 outline-none focus:border-brand text-sm" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium text-ink mb-1 block">Categoria</label>
+          <select class="w-full px-4 py-2.5 rounded-xl bg-bg border border-black/5 outline-none focus:border-brand text-sm">
+            <option>Shows</option>
+            <option>Tech</option>
+            <option>Arte</option>
+            <option>Gastronomia</option>
+            <option>Esportes</option>
+            <option>Workshops</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-ink mb-1 block">Capacidade</label>
+          <input type="number" placeholder="5000" class="w-full px-4 py-2.5 rounded-xl bg-bg border border-black/5 outline-none focus:border-brand text-sm" />
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-medium text-ink mb-1 block">Preço do Ingresso (R$)</label>
+        <input type="number" step="0.01" placeholder="189.00" class="w-full px-4 py-2.5 rounded-xl bg-bg border border-black/5 outline-none focus:border-brand text-sm" />
+      </div>
+      <div>
+        <label class="text-sm font-medium text-ink mb-1 block">Descrição</label>
+        <textarea rows="3" placeholder="Descreva o evento..." class="w-full px-4 py-2.5 rounded-xl bg-bg border border-black/5 outline-none focus:border-brand text-sm resize-none"></textarea>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeModal('create')" class="flex-1 px-4 py-3 rounded-full bg-bg text-ink font-semibold hover:bg-mint transition">Cancelar</button>
+        <button type="submit" class="flex-1 px-4 py-3 rounded-full bg-brand text-white font-semibold hover:bg-forest transition">Publicar Evento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const profileBtns = document.querySelectorAll('.profile-btn');
+  const views = document.querySelectorAll('.view');
+
+  function setActiveView(viewName) {
+    views.forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + viewName).classList.add('active');
+    profileBtns.forEach(b => {
+      if (b.dataset.view === viewName) {
+        b.classList.add('bg-forest', 'text-white', 'shadow-soft');
+        b.classList.remove('text-ink');
+      } else {
+        b.classList.remove('bg-forest', 'text-white', 'shadow-soft');
+        b.classList.add('text-ink');
+      }
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  profileBtns.forEach(btn => {
+    btn.addEventListener('click', () => setActiveView(btn.dataset.view));
+  });
+
+  setActiveView('visitor');
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('active');
+      if (chip.classList.contains('active')) {
+        chip.classList.remove('bg-mint', 'text-forest');
+        chip.classList.add('bg-forest', 'text-white');
+      } else {
+        chip.classList.add('bg-mint', 'text-forest');
+        chip.classList.remove('bg-forest', 'text-white');
+      }
+    });
+  });
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const parent = tab.parentElement;
+      parent.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active', 'bg-mint', 'text-forest', 'bg-forest', 'text-white');
+        t.classList.add('bg-bg', 'text-sage');
+      });
+      tab.classList.add('active', 'bg-forest', 'text-white');
+      tab.classList.remove('bg-bg', 'text-sage', 'bg-mint');
+    });
+  });
+
+  document.querySelectorAll('.sidebar-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const parent = link.closest('nav');
+      parent.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+    });
+  });
+
+  function openModal(type) {
+    const modal = document.getElementById('modal-' + type);
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeModal(type) {
+    const modal = document.getElementById('modal-' + type);
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    });
+  });
+</script>
+</body>
+</html>
