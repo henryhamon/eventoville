@@ -1,13 +1,14 @@
 import { createSignal, onCleanup, onMount, Show, Switch, Match, createEffect } from 'solid-js';
 import { currentUser, loadSession, homeFor, navigate, toast } from './api';
 import PublicPortal from './components/PublicPortal';
-import Login from './components/Login';
+import Login, { ForgotPassword, ResetPassword } from './components/Login';
 import Shell from './components/Shell';
 import MyRequests from './components/MyRequests';
 import EventForm from './components/EventForm';
 import AdminQueue from './components/AdminQueue';
 import AdminCatalog from './components/AdminCatalog';
 import Reports from './components/Reports';
+import Outbox from './components/Outbox';
 
 const readRoute = () => location.hash.replace(/^#/, '') || '/';
 
@@ -21,7 +22,8 @@ function App() {
   });
   onCleanup(() => window.removeEventListener('hashchange', onHashChange));
 
-  const isPublic = () => route() === '/' || route() === '/login';
+  const resetToken = () => route().match(/^\/redefinir\/([0-9a-f]+)$/)?.[1];
+  const isPublic = () => ['/', '/login', '/esqueci'].includes(route()) || !!resetToken();
   const editId = () => route().match(/^\/editar\/(\d+)$/)?.[1];
 
   // Route guard: restricted areas need a session, admin area needs ADMIN
@@ -49,6 +51,8 @@ function App() {
       <Switch>
         <Match when={route() === '/'}><PublicPortal /></Match>
         <Match when={route() === '/login'}><Login /></Match>
+        <Match when={route() === '/esqueci'}><ForgotPassword /></Match>
+        <Match when={resetToken()}>{(token) => <ResetPassword token={token()} />}</Match>
         <Match when={currentUser()}>
           <Shell route={route()}>
             <Switch fallback={<MyRequests />}>
@@ -56,6 +60,7 @@ function App() {
               <Match when={editId()}>{(id) => <EventForm id={Number(id())} />}</Match>
               <Match when={route() === '/admin/cadastros' && currentUser()?.role === 'ADMIN'}><AdminCatalog /></Match>
               <Match when={route() === '/admin/relatorios' && currentUser()?.role === 'ADMIN'}><Reports /></Match>
+              <Match when={route() === '/admin/emails' && currentUser()?.role === 'ADMIN'}><Outbox /></Match>
               <Match when={route().startsWith('/admin') && currentUser()?.role === 'ADMIN'}><AdminQueue route={route()} /></Match>
             </Switch>
           </Shell>

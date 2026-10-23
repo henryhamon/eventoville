@@ -110,20 +110,20 @@ Cada marco deixa a demo apresentável. Se o tempo acabar, congele no último mar
 
 ## Phase 9: US7 — Recuperação de senha (P3) M5
 
-- [ ] T037 [US7] Em `server.ts`, `forgot-password` deixa de retornar o token, grava em `email_outbox` e registra o link no log; `reset-password` valida o tamanho mínimo da senha e invalida as sessões do usuário
-- [ ] T038 [US7] Em `server.ts`, `GET /api/admin/outbox`; em `Shell`/`AdminQueue`, aba "Caixa de saída" listando os e-mails com o link clicável
-- [ ] T039 [US7] Em `Login.tsx`, telas "Esqueci minha senha" (`#/esqueci`) e "Redefinir senha" (`#/redefinir/:token`)
+- [x] T037 [US7] Em `server.ts`, `forgot-password` deixa de retornar o token, grava em `email_outbox` e registra o link no log; `reset-password` valida o tamanho mínimo da senha e invalida as sessões do usuário
+- [x] T038 [US7] Em `server.ts`, `GET /api/admin/outbox`; em `Shell`/`AdminQueue`, aba "Caixa de saída" listando os e-mails com o link clicável
+- [x] T039 [US7] Em `Login.tsx`, telas "Esqueci minha senha" (`#/esqueci`) e "Redefinir senha" (`#/redefinir/:token`)
 
 ---
 
 ## Phase 10: Polish
 
 - [x] T040 [P] Criar `scripts/smoke.sh` cobrindo SC-003, SC-004 e SC-005 (login, 403 no admin, bypass de status, conflito, adjacência, reject sem motivo, linhas do CSV) — *60 checagens; sobe um servidor próprio em banco temporário (porta 3999), sem tocar no `database.sqlite`*
-- [ ] T041 [P] Escrever `README.md`: equipe e integrantes (preencher), resumo, stack, instalação, `db:reset`, credenciais fictícias, estrutura, componentes reutilizados (Tailwind CDN, DM Sans, mock HTML) e ferramentas de IA usadas
-- [ ] T042 [P] Adicionar `@types/cookie-parser` e declarações para `node:sqlite` para zerar os erros do `tsc --noEmit`
-- [ ] T043 Testar `npm run build && npm start` (o servidor serve `dist/` na porta 3000) como plano B à banca
-- [ ] T044 Executar o roteiro do quickstart.md cronometrado e ajustar o seed se algum passo falhar
-- [ ] T045 `npm run db:reset` final e commit antes das 18h45
+- [x] T041 [P] Escrever `README.md`: equipe e integrantes (preencher), resumo, stack, instalação, `db:reset`, credenciais fictícias, estrutura, componentes reutilizados (Tailwind CDN, DM Sans, mock HTML) e ferramentas de IA usadas — *nome da equipe, demais integrantes e outras ferramentas de IA ficaram como `[preencher]`*
+- [x] T042 [P] Adicionar `@types/cookie-parser` e declarações para `node:sqlite` para zerar os erros do `tsc --noEmit`
+- [x] T043 Testar `npm run build && npm start` (o servidor serve `dist/` na porta 3000) como plano B à banca — *validado na porta 3998 com banco temporário*
+- [x] T044 Executar o roteiro do quickstart.md cronometrado e ajustar o seed se algum passo falhar — *não cronometrado; roteiro essencial validado no M3; recuperação de senha validada pela interface em servidor isolado (build de produção + banco temporário)*
+- [ ] T045 `npm run db:reset` final e commit antes das 18h45 — *pendente por decisão do usuário: não resetar o banco nem commitar*
 
 ---
 

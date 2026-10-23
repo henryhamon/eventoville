@@ -10,7 +10,10 @@ PASS=0; FAIL=0
 SERVER_PID=
 
 cleanup() {
-  [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null
+  if [ -n "$SERVER_PID" ]; then
+    kill "$SERVER_PID" 2>/dev/null
+    wait "$SERVER_PID" 2>/dev/null
+  fi
   rm -rf "$JAR"
 }
 trap cleanup EXIT
@@ -19,7 +22,11 @@ if [ -z "${BASE:-}" ]; then
   PORT=${SMOKE_PORT:-3999}
   BASE=http://localhost:$PORT
   cd "$(dirname "$0")/.."
-  DB_PATH="$JAR/test.sqlite" PORT=$PORT npx tsx server.ts >"$JAR/server.log" 2>&1 &
+  if curl -s -o /dev/null "$BASE"; then
+    echo "Port $PORT is already in use; set SMOKE_PORT to another port"; exit 1
+  fi
+  # Single process (no npx wrapper) so the kill in cleanup really stops it
+  DB_PATH="$JAR/test.sqlite" PORT=$PORT node --import tsx server.ts >"$JAR/server.log" 2>&1 &
   SERVER_PID=$!
   for _ in $(seq 1 40); do curl -s -o /dev/null "$BASE/api/public/events" && break; sleep 0.25; done
   echo "Test server on $BASE (temporary database)"
@@ -134,6 +141,26 @@ echo "Sessions"
 check "session persists (me)" 200 "$(req sol GET /api/auth/me)"
 check "logout" 200 "$(req sol POST /api/auth/logout)"
 check "session gone after logout" 401 "$(req sol GET /api/auth/me)"
+
+echo "Password recovery"
+MARIA=maria.souza@univille.br
+check "maria logs in" 200 "$(login mar $MARIA sol123)"
+check "unknown e-mail gets same answer" 200 "$(req anon POST /api/auth/forgot-password '{"email":"ninguem@univille.br"}')"
+GENERIC=$(json o.message)
+check "known e-mail" 200 "$(req anon POST /api/auth/forgot-password "{\"email\":\"$MARIA\"}")"
+check "  same message (no enumeration)" "$GENERIC" "$(json o.message)"
+check "  token not returned by API" false "$(json "'token' in o")"
+check "requester blocked from outbox" 403 "$(req mar GET /api/admin/outbox)"
+check "admin reads outbox" 200 "$(req adm GET /api/admin/outbox)"
+check "  e-mail sent to maria with link" true "$(json "o[0].to_email==='$MARIA' && /#\/redefinir\/[0-9a-f]{64}/.test(o[0].body)")"
+TOKEN=$(json "o[0].body.match(/redefinir\/([0-9a-f]{64})/)[1]")
+check "short new password rejected" 400 "$(req anon POST /api/auth/reset-password "{\"token\":\"$TOKEN\",\"newPassword\":\"123\"}")"
+check "invalid token rejected" 400 "$(req anon POST /api/auth/reset-password '{"token":"deadbeef","newPassword":"nova1234"}')"
+R=$(req anon POST /api/auth/reset-password "{\"token\":\"$TOKEN\",\"newPassword\":\"nova1234\"}"); check "password reset" 200 "$R"
+check "  open sessions ended" 401 "$(req mar GET /api/auth/me)"
+check "  old password rejected" 401 "$(login mar $MARIA sol123)"
+check "  new password works" 200 "$(login mar $MARIA nova1234)"
+check "  link cannot be reused" 400 "$(req anon POST /api/auth/reset-password "{\"token\":\"$TOKEN\",\"newPassword\":\"outra123\"}")"
 
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

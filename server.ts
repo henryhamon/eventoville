@@ -132,56 +132,73 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({ user });
 });
 
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+const FORGOT_PASSWORD_MESSAGE = 'Se o e-mail estiver cadastrado, enviaremos um link para redefinir a senha.';
+
+// No external mail service: messages are stored in email_outbox (visible to
+// admins) and logged, so the demo works offline without real credentials
+function sendEmail(to: string, subject: string, body: string) {
+  getDb().prepare('INSERT INTO email_outbox (to_email, subject, body) VALUES (?, ?, ?)').run(to, subject, body);
+  console.log(`[email] to=${to} subject="${subject}"\n${body}\n`);
+}
+
 app.post('/api/auth/forgot-password', (req, res) => {
   try {
-    const { email } = req.body;
-    const db = getDb();
-    const stmt = db.prepare('SELECT id FROM users WHERE email = ?');
-    const user = stmt.get(email) as any;
-
-    if (!user) {
-      return res.json({ message: 'Password reset token generated' });
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (!email) {
+      return res.status(400).json({ error: 'Informe o e-mail' });
     }
-
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 3600000).toISOString();
-
-    const insertStmt = db.prepare('INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)');
-    insertStmt.run(token, user.id, expiresAt);
-
-    res.json({ message: 'Password reset token generated', token });
+    const db = getDb();
+    const user = db.prepare('SELECT id, name, email FROM users WHERE email = ?').get(email) as any;
+    
+    // Same response whether or not the account exists, so e-mails cannot be enumerated
+    if (user) {
+      const token = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS).toISOString();
+      db.prepare('INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)').run(token, user.id, expiresAt);
+      
+      const origin = req.get('origin') || `${req.protocol}://${req.get('host')}`;
+      const link = `${origin}/#/redefinir/${token}`;
+      sendEmail(user.email, 'Redefinição de senha - Sistema de Gestão de Eventos Institucionais', [
+        `Olá, ${user.name}.`,
+        '',
+        'Recebemos uma solicitação para redefinir sua senha. Acesse o link abaixo (válido por 1 hora):',
+        link,
+        '',
+        'Se você não fez esta solicitação, ignore este e-mail.',
+      ].join('\n'));
+    }
+    
+    res.json({ message: FORGOT_PASSWORD_MESSAGE });
   } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    sendError(res, error, 'Forgot password');
   }
 });
 
 app.post('/api/auth/reset-password', (req, res) => {
   try {
     const { token, newPassword } = req.body;
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({ error: 'A nova senha deve ter ao menos 6 caracteres' });
+    }
     const db = getDb();
-
-    const stmt = db.prepare('SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0');
-    const resetToken = stmt.get(token) as any;
-
-    if (!resetToken) {
-      return res.status(400).json({ error: 'Invalid token' });
+    
+    const resetToken = db.prepare('SELECT * FROM password_reset_tokens WHERE token = ?').get(String(token ?? '')) as any;
+    if (!resetToken || resetToken.used) {
+      return res.status(400).json({ error: 'Link de redefinição inválido ou já utilizado' });
     }
-
     if (new Date(resetToken.expires_at) < new Date()) {
-      return res.status(400).json({ error: 'Token expired' });
+      return res.status(400).json({ error: 'Link de redefinição expirado. Solicite um novo.' });
     }
-
-    const updateUser = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
-    updateUser.run(hashPassword(newPassword), resetToken.user_id);
-
-    const updateToken = db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?');
-    updateToken.run(resetToken.id);
-
-    res.json({ message: 'Password updated' });
+    
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), resetToken.user_id);
+    db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').run(resetToken.id);
+    // A password change ends every open session of that user
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(resetToken.user_id);
+    
+    res.json({ message: 'Senha redefinida. Entre com a nova senha.' });
   } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    sendError(res, error, 'Reset password');
   }
 });
 
@@ -600,6 +617,15 @@ app.get('/api/meta/themes', requireAuth, (req, res) => {
     res.json(stmt.all());
   } catch (error) {
     sendError(res, error, 'Themes');
+  }
+});
+
+// Local e-mail outbox (registered before the generic /api/admin/:entity routes)
+app.get('/api/admin/outbox', requireAdmin, (req, res) => {
+  try {
+    res.json(getDb().prepare('SELECT * FROM email_outbox ORDER BY id DESC LIMIT 20').all());
+  } catch (error) {
+    sendError(res, error, 'Outbox');
   }
 });
 

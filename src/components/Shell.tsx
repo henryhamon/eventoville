@@ -16,6 +16,7 @@ const adminNav: NavItem[] = [
   { href: '#/admin', label: 'Solicitações', match: r => r === '/admin' || r.startsWith('/admin/evento') || r.startsWith('/editar'), icon: icon(<><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></>) },
   { href: '#/admin/cadastros', label: 'Cadastros', match: r => r === '/admin/cadastros', icon: icon(<><path d="M4 6h16M4 12h16M4 18h10"/></>) },
   { href: '#/admin/relatorios', label: 'Relatórios', match: r => r === '/admin/relatorios', icon: icon(<><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></>) },
+  { href: '#/admin/emails', label: 'Caixa de Saída', match: r => r === '/admin/emails', icon: icon(<><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></>) },
 ];
 
 function initials(name: string) {
